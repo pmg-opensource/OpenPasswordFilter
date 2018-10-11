@@ -189,7 +189,7 @@ void askServer(SOCKET sock, PUNICODE_STRING AccountName, PUNICODE_STRING Passwor
 
 		i = sendall(sock, cPassword, &len);
 		//i = send(sock, sPassword.c_str(), sPassword.size(), 0);
-		//writeWindowsEventLog("Finished sendall function to test password" + sPassword, "OPF","INFORMATION",5);
+		//writeWindowsEventLog("Finished sendall function to test password " + sPassword, "OPF","INFORMATION",5);
 		if (i != SOCKET_ERROR) {
 			i = recv(sock, rcBuffer, sizeof(rcBuffer), 0);//read response
 //			writeWindowsEventLog(string("Got ") + rcBuffer[0] + string(" on test of ") + sPassword, "OPF", "INFORMATION", 5);
@@ -230,7 +230,7 @@ unsigned int __stdcall CreateSocket(void *v) {
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
 
-//	writeWindowsEventLog("DLL starting CreateSocket","OPF", "ERROR", 5);
+//	writeWindowsEventLog("DLL starting CreateSocket","OPF", "INFORMATION", 5);
 
 	// This butt-ugly loop is straight out of Microsoft's reference example
 	// for a TCP client.  It's not my style, but how can the reference be
@@ -240,10 +240,12 @@ unsigned int __stdcall CreateSocket(void *v) {
 		for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
 			sock = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
 			if (sock == INVALID_SOCKET) {
+				writeWindowsEventLog("Socket returned INVALID_SOCKET","OPF", "ERROR", 5);
 				break;
 			}
 			i = connect(sock, ptr->ai_addr, (int)ptr->ai_addrlen);
 			if (i == SOCKET_ERROR) {
+				writeWindowsEventLog("Connection to socket returned SOCKET_ERROR","OPF", "ERROR", 5);
 				closesocket(sock);
 				sock = INVALID_SOCKET;
 				continue;
@@ -273,7 +275,8 @@ extern "C" __declspec(dllexport) BOOLEAN __stdcall PasswordFilter(PUNICODE_STRIN
 	//start an asynchronous thread to be able to kill the thread if it exceeds the timout
 	HANDLE pfHandle = (HANDLE)_beginthreadex(0, 0, CreateSocket, (LPVOID *)pfAccount, 0, 0);
 
-	DWORD dWaitFor = WaitForSingleObject(pfHandle, 30000); //do not exceed the timeout
+	// timeout is milliseconds. Is 30 seconds too long?
+	DWORD dWaitFor = WaitForSingleObject(pfHandle, 30000); //do not exceed the timeout. 
 	if (dWaitFor == WAIT_TIMEOUT) {
 		//timeout exceeded
 		writeWindowsEventLog("Timeout exceeded", "OPF", "ERROR", 5);
