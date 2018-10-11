@@ -21,6 +21,7 @@ using System.Threading;
 using System.Net;
 using System.Net.Sockets;
 using System.IO;
+using System.Diagnostics;
 
 
 namespace OPFService {
@@ -33,7 +34,7 @@ namespace OPFService {
 
         public void main() {
             IPAddress ip = IPAddress.Parse("127.0.0.1");
-            IPEndPoint local = new IPEndPoint(ip, 5999);
+            IPEndPoint local = new IPEndPoint(ip, 5995);
             Socket listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
             try {
@@ -44,7 +45,12 @@ namespace OPFService {
                     new Thread(() => handle(client)).Start();
                 }
             } catch (Exception e) {
-                // don't know what to do here
+                Console.WriteLine("Exception caught: {0}", e);
+                using (EventLog eventLog = new EventLog("Application"))
+                {
+                    eventLog.Source = "Application";
+                    eventLog.WriteEntry("OpenPasswordFilter service failed to bind to port 5995", EventLogEntryType.Information, 101, 1);
+                }
             }
         }
 
@@ -60,10 +66,19 @@ namespace OPFService {
                     ostream.WriteLine(containsPassword ? "false" : "true");
                     ostream.Flush();
                 } else {
-                    ostream.WriteLine("ERROR");
-                    ostream.Flush();
+                    using (EventLog eventLog = new EventLog("Application"))
+                    {
+                        eventLog.Source = "Application";
+                        eventLog.WriteEntry("OpenPasswordFilter service did not recieve test command", EventLogEntryType.Information, 101, 1);
+                    }
                 }
             } catch (Exception e) {
+                using (EventLog eventLog = new EventLog("Application"))
+                {
+                    Console.WriteLine("Exception caught: {0}", e);
+                    eventLog.Source = "Application";
+                    eventLog.WriteEntry("OpenPasswordFilter service handle call failed to perform test", EventLogEntryType.Information, 101, 1);
+                }
 
             }
             client.Close();
