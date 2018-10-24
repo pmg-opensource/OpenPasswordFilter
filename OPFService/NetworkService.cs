@@ -23,7 +23,6 @@ using System.Net.Sockets;
 using System.IO;
 using System.Diagnostics;
 
-
 namespace OPFService {
     class NetworkService {
         OPFDictionary dict;

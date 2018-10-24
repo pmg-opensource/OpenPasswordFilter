@@ -55,6 +55,7 @@ struct PasswordFilterAccount {
 };
 
 bool bPasswordOk = true;
+DWORD dVerbosityFlag = 0;
 
 //
 // make sure all data is sent through the socket
@@ -176,23 +177,23 @@ void askServer(SOCKET sock, PUNICODE_STRING AccountName, PUNICODE_STRING Passwor
 	char *preamble = "test\n"; //command that is used to start password testing
 	int i;
 	int len;
-	//	writeWindowsEventLog("DLL starting askServer","OPF","INFORMATION",5);
+
+	if (dVerbosityFlag > 1) { writeWindowsEventLog("DLL starting askServer", "OPF", "INFORMATION", 5); }
 	i = send(sock, preamble, (int)strlen(preamble), 0); //send test command
 	if (i != SOCKET_ERROR) {
 		std::wstring wPassword(Password->Buffer, Password->Length / sizeof(WCHAR));
 		wPassword.push_back('\n');
 
 		std::string sPassword = converter.to_bytes(wPassword);
-		//writeWindowsEventLog("About to test password " + sPassword, "OPF","INFORMATION",5);
+		if (dVerbosityFlag > 1) { writeWindowsEventLog("About to test password ending with " + sPassword.back(), "OPF", "INFORMATION", 5); }
 		const char * cPassword = sPassword.c_str();
 		len = static_cast<int>(sPassword.size());
 
 		i = sendall(sock, cPassword, &len);
-		//i = send(sock, sPassword.c_str(), sPassword.size(), 0);
-		//writeWindowsEventLog("Finished sendall function to test password " + sPassword, "OPF","INFORMATION",5);
+		if (dVerbosityFlag > 1) { writeWindowsEventLog("Finished sendall function to test password ending with" + sPassword.back(), "OPF", "INFORMATION", 5); }
 		if (i != SOCKET_ERROR) {
 			i = recv(sock, rcBuffer, sizeof(rcBuffer), 0);//read response
-//			writeWindowsEventLog(string("Got ") + rcBuffer[0] + string(" on test of ") + sPassword, "OPF", "INFORMATION", 5);
+			if (dVerbosityFlag > 1) { writeWindowsEventLog(string("Got ") + rcBuffer[0] + string(" on test of password ending with ") + sPassword.back(), "OPF", "INFORMATION", 5); }
 			if (i > 0 && rcBuffer[0] == 'f') {
 				bPasswordOk = FALSE;
 			}
@@ -230,7 +231,7 @@ unsigned int __stdcall CreateSocket(void *v) {
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
 
-//	writeWindowsEventLog("DLL starting CreateSocket","OPF", "INFORMATION", 5);
+	if (dVerbosityFlag > 1) { writeWindowsEventLog("DLL starting CreateSocket", "OPF", "INFORMATION", 5); }
 
 	// This butt-ugly loop is straight out of Microsoft's reference example
 	// for a TCP client.  It's not my style, but how can the reference be
@@ -267,6 +268,21 @@ extern "C" __declspec(dllexport) BOOLEAN __stdcall PasswordFilter(PUNICODE_STRIN
 																  PUNICODE_STRING Password,
 																  BOOLEAN SetOperation) {
 
+//	// get debugging value from registry, if it is set, instead of needing to recompile code
+//  // but this is a lot of I/O
+//	HKEY hKey;
+//	DWORD dRegistryValue;
+//	LONG lResult;
+//	unsigned long lRegistryKeyType = REG_DWORD;
+//	unsigned long lKeySize = 1024;
+//
+//	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\OPF"), 0, KEY_READ | KEY_WOW64_64KEY, &hKey);
+//	if (lResult == ERROR_SUCCESS){
+//		RegQueryValueEx(hKey, TEXT("VerbosityFlag"), NULL, &lRegistryKeyType, (LPBYTE)&dRegistryValue, &lKeySize);
+//		RegCloseKey(hKey);
+//		dVerbosityFlag = dRegistryValue;
+//	}
+
 	//build the account struct
 	PasswordFilterAccount *pfAccount = new PasswordFilterAccount();
 	pfAccount->AccountName = AccountName;
@@ -295,6 +311,6 @@ extern "C" __declspec(dllexport) BOOLEAN __stdcall PasswordFilter(PUNICODE_STRIN
 			pfHandle = INVALID_HANDLE_VALUE;
 		}
 	}
-
+	delete pfAccount;
 	return bPasswordOk;
 }
