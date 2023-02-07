@@ -27,9 +27,23 @@ namespace OPFService {
         List<string> contlist;
 
         public OPFDictionary(string pathmatch, string pathcont) {
+
+            contlist = new List<string>();
+
+            // Make dictionary file optional 
+            if (!File.Exists(pathcont))
+            {
+                using (EventLog eventLog = new EventLog("Application"))
+                {
+                    eventLog.Source = "Application";
+                    eventLog.WriteEntry("OpenPasswordFilter service failed to load dictionary " + pathcont + ".", EventLogEntryType.Information, 101, 1);
+                }
+                return;
+            }
+
+
             string line;
             StreamReader infilecont = new StreamReader(pathcont);
-            contlist = new List<string>();
             int a = 1;
             while ((line = infilecont.ReadLine()) != null)
             {
