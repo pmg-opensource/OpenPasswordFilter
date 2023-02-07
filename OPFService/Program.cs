@@ -48,7 +48,9 @@ namespace OPFService {
             base.OnStart(args);
             OPFDictionary d = new OPFDictionary(AppDomain.CurrentDomain.BaseDirectory + "\\opfdict.txt", AppDomain.CurrentDomain.BaseDirectory + "opfdict.txt");
             // OPFDictionary d = new OPFDictionary("c:\\windows\\system32\\opfmatch.txt", "c:\\windows\\system32\\opfcont.txt");
-            NetworkService svc = new NetworkService(d);
+            OPFRules r = new OPFRules(AppDomain.CurrentDomain.BaseDirectory + "opfrules.properties");
+
+            NetworkService svc = new NetworkService(d, r);
             worker = new Thread(() => svc.main());
             worker.Start();
         }
