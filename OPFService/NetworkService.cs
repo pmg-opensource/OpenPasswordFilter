@@ -26,9 +26,11 @@ using System.Diagnostics;
 namespace OPFService {
     class NetworkService {
         OPFDictionary dict;
+        OPFRules rules;
 
-        public NetworkService(OPFDictionary d) {
+        public NetworkService(OPFDictionary d, OPFRules r) {
             dict = d;
+            rules = r;
         }
 
         public void main() {
@@ -61,6 +63,12 @@ namespace OPFService {
                 string command = istream.ReadLine();
                 if (command == "test") {
                     string password = istream.ReadLine();
+                    if (!rules.CheckPassword(password)) {
+                        // Fail fast, no need to check dictionary
+                        ostream.WriteLine("false");
+                        ostream.Flush();
+                        return;
+                    }
                     bool containsPassword = dict.contains(password);
                     ostream.WriteLine(containsPassword ? "false" : "true");
                     ostream.Flush();
@@ -82,5 +90,6 @@ namespace OPFService {
             }
             client.Close();
         }
+
     }
 }
